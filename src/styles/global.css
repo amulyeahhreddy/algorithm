@@ -1,0 +1,174 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+@import './tokens.css';
+@import './animations.css';
+@import './feed.css';
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-display);
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(0, 229, 255, 0.3);
+  color: var(--text-primary);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.3);
+  border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 229, 255, 0.5);
+}
+
+/* Shared Components Styles */
+
+.grid-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  animation: fadeIn 1.5s ease-out forwards;
+}
+
+.scanline-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  opacity: 0.4;
+}
+
+.glow-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+}
+
+.glow-text.color-cyan { color: var(--accent-cyan); }
+.glow-text.color-violet { color: var(--accent-violet); }
+.glow-text.color-coral { color: var(--accent-coral); }
+.glow-text.color-lime { color: var(--accent-lime); }
+.glow-text.color-amber { color: var(--accent-amber); }
+
+.glow-text.size-sm {
+  font-size: 1rem;
+}
+
+.glow-text.size-md {
+  font-size: 1.5rem;
+}
+
+.glow-text.size-lg {
+  font-size: 2.5rem;
+}
+
+.glow-text.size-xl {
+  font-size: 4rem;
+}
+
+.glow-text.animate-pulse {
+  animation: glow-pulse 2s infinite ease-in-out;
+}
+
+/* Landing Screen Styles */
+
+.landing-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: var(--space-6);
+  animation: fadeIn 1.2s ease-out;
+}
+
+.landing-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 5rem;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-bottom: var(--space-3);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 24px rgba(0, 229, 255, 0.35), 0 0 48px rgba(0, 229, 255, 0.15);
+}
+
+.landing-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--accent-cyan);
+  margin-bottom: var(--space-8);
+  letter-spacing: 0.05em;
+  max-width: 600px;
+  text-transform: uppercase;
+}
+
+.begin-button {
+  border: 1px solid var(--accent-cyan);
+  background: transparent;
+  color: var(--accent-cyan);
+  padding: 14px 40px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.3s ease-in-out;
+  box-shadow: 0 0 0px rgba(0, 229, 255, 0);
+}
+
+.begin-button:hover {
+  background: rgba(0, 229, 255, 0.05);
+  box-shadow: var(--glow-cyan);
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.begin-button:active {
+  transform: translateY(0);
+}
+
+
