@@ -14,4 +14,9 @@ export const useRecommendationStore = create((set) => ({
   setFeedQueue: (feedQueue) => set({ feedQueue }),
   setScores: (scores) => set({ scores }),
   setCurrentCardIndex: (currentCardIndex) => set({ currentCardIndex }),
+  resetUserVector: () => set({
+    userVector: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+    interactions: [],
+  }),
 }))
+

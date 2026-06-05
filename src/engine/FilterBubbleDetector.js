@@ -12,6 +12,18 @@ export class FilterBubbleDetector {
     this.totalTime = 0;
   }
 
+  reset() {
+    this.clusterDwellTime = {
+      humor: 0,
+      knowledge: 0,
+      music: 0,
+      sports: 0,
+      lifestyle: 0
+    };
+    this.totalTime = 0;
+  }
+
+
   update(userPos, clusters, dt) {
     const dominant = ClusteringEngine.getDominantCluster(userPos, clusters);
     if (dominant) {

@@ -1,98 +1,154 @@
 /**
- * UserLayer — renders the user's current position as a pulsing indicator
- * Multi-ring animated cursor with velocity direction indicator.
+ * UserLayer — renders the user position with three simultaneous ODE component vectors.
+ * dx/dt = F_rec + ε
+ *   F_rec   →  Cyan   (recommendation force)
+ *   dx/dt   →  Amber  (current velocity)
+ *   ε       →  Coral  (exploration noise)
  */
 
-export function renderUserLayer(ctx, width, height, { userPos, userVelocity, time }) {
+// ── Helper: draw a labelled filled-arrowhead vector ──
+function drawVector(ctx, ox, oy, dx, dy, color, width, label) {
+  const ex = ox + dx;
+  const ey = oy + dy;
+  const angle = Math.atan2(dy, dx);
+  const headLen = 6;
+  const headAngle = 0.38;
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
+
+  // Shaft
+  ctx.beginPath();
+  ctx.moveTo(ox, oy);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+
+  // Filled arrowhead
+  ctx.beginPath();
+  ctx.moveTo(ex, ey);
+  ctx.lineTo(
+    ex - headLen * Math.cos(angle - headAngle),
+    ey - headLen * Math.sin(angle - headAngle)
+  );
+  ctx.lineTo(
+    ex - headLen * Math.cos(angle + headAngle),
+    ey - headLen * Math.sin(angle + headAngle)
+  );
+  ctx.closePath();
+  ctx.fill();
+
+  // Label — offset past the arrowhead tip
+  if (label) {
+    const labelDist = 8;
+    ctx.font = '9px "IBM Plex Mono", monospace';
+    ctx.fillStyle = color;
+    ctx.textAlign = 'left';
+    ctx.fillText(
+      label,
+      ex + Math.cos(angle) * labelDist,
+      ey + Math.sin(angle) * labelDist
+    );
+  }
+
+  ctx.restore();
+}
+
+export function renderUserLayer(ctx, width, height, { userPos, userVelocity, recommendationForce, noise, time }) {
   if (!userPos) return;
 
-  const x = userPos.x * width;
-  const y = userPos.y * height;
+  const cx = userPos.x * width;
+  const cy = userPos.y * height;
 
   ctx.save();
 
-  // Outer scanning ring — rotates slowly
-  const scanRadius = 22 + 4 * Math.sin(time * 1.5);
-  const scanAngle = time * 0.8;
+  // ── Outer glow rings ──
+  const glowRings = [28, 20, 13, 7];
+  const glowAlphas = [0.04, 0.07, 0.14, 0.30];
+  glowRings.forEach((r, i) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(0, 229, 255, ${glowAlphas[i]})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
 
+  // ── Pulsing ring ──
+  const pulseR = 10 + Math.sin(time * 3) * 2;
   ctx.beginPath();
-  ctx.arc(x, y, scanRadius, scanAngle, scanAngle + Math.PI * 1.2);
-  ctx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
+  ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(0, 229, 255, ${0.25 + Math.sin(time * 3) * 0.12})`;
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  ctx.beginPath();
-  ctx.arc(x, y, scanRadius, scanAngle + Math.PI, scanAngle + Math.PI * 1.6);
-  ctx.strokeStyle = 'rgba(124, 58, 237, 0.25)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Middle ring — pulse
-  const midPulse = 0.7 + 0.3 * Math.sin(time * 3);
-  const midRadius = 12 * midPulse;
-
-  ctx.beginPath();
-  ctx.arc(x, y, midRadius, 0, Math.PI * 2);
-  ctx.strokeStyle = `rgba(0, 229, 255, ${0.3 + midPulse * 0.3})`;
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  // Core glow
-  const coreGrad = ctx.createRadialGradient(x, y, 0, x, y, 8);
-  coreGrad.addColorStop(0, 'rgba(0, 229, 255, 0.9)');
-  coreGrad.addColorStop(0.4, 'rgba(0, 229, 255, 0.4)');
-  coreGrad.addColorStop(1, 'rgba(0, 229, 255, 0)');
-
-  ctx.beginPath();
-  ctx.arc(x, y, 8, 0, Math.PI * 2);
-  ctx.fillStyle = coreGrad;
-  ctx.fill();
-
-  // Center bright dot
-  const centerPulse = 0.8 + 0.2 * Math.sin(time * 5);
-  ctx.beginPath();
-  ctx.arc(x, y, 3, 0, Math.PI * 2);
-  ctx.fillStyle = `rgba(255, 255, 255, ${centerPulse})`;
-  ctx.fill();
-
-  // Velocity direction indicator arrow
-  if (userVelocity) {
-    const vMag = Math.sqrt(userVelocity.x * userVelocity.x + userVelocity.y * userVelocity.y);
-    if (vMag > 0.0005) {
-      const vAngle = Math.atan2(userVelocity.y, userVelocity.x);
-      const arrowLen = Math.min(30, vMag * 800);
-      const ax = x + Math.cos(vAngle) * (scanRadius + 4);
-      const ay = y + Math.sin(vAngle) * (scanRadius + 4);
-      const bx = x + Math.cos(vAngle) * (scanRadius + 4 + arrowLen);
-      const by = y + Math.sin(vAngle) * (scanRadius + 4 + arrowLen);
-
-      ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.lineTo(bx, by);
-      ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Arrow head
-      const headLen = 5;
-      ctx.beginPath();
-      ctx.moveTo(bx, by);
-      ctx.lineTo(bx - Math.cos(vAngle - 0.4) * headLen, by - Math.sin(vAngle - 0.4) * headLen);
-      ctx.moveTo(bx, by);
-      ctx.lineTo(bx - Math.cos(vAngle + 0.4) * headLen, by - Math.sin(vAngle + 0.4) * headLen);
-      ctx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
-      ctx.stroke();
+  // ── Vector 1: Recommendation Force F_rec (CYAN) ──
+  const fScale = 300;
+  if (recommendationForce) {
+    const fMag = Math.sqrt(recommendationForce.x ** 2 + recommendationForce.y ** 2);
+    if (fMag > 0.003) {
+      drawVector(
+        ctx, cx, cy,
+        recommendationForce.x * fScale,
+        recommendationForce.y * fScale,
+        'rgba(0, 229, 255, 0.90)',
+        2.0,
+        'F_rec'
+      );
     }
   }
 
-  // Coordinates label
+  // ── Vector 2: Current Velocity dx/dt (AMBER) ──
+  const vScale = 250;
+  if (userVelocity) {
+    const vMag = Math.sqrt(userVelocity.x ** 2 + userVelocity.y ** 2);
+    if (vMag > 0.0005) {
+      drawVector(
+        ctx, cx, cy,
+        userVelocity.x * vScale,
+        userVelocity.y * vScale,
+        'rgba(255, 193, 7, 0.90)',
+        2.0,
+        'dx/dt'
+      );
+    }
+  }
+
+  // ── Vector 3: Noise ε (CORAL, smaller) ──
+  const nScale = 600;
+  if (noise) {
+    const nMag = Math.sqrt(noise.x ** 2 + noise.y ** 2);
+    if (nMag > 0.0001) {
+      drawVector(
+        ctx, cx, cy,
+        noise.x * nScale,
+        noise.y * nScale,
+        'rgba(255, 71, 87, 0.65)',
+        1.2,
+        'ε'
+      );
+    }
+  }
+
+  // ── Core dot: white halo + cyan centre ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#00E5FF';
+  ctx.fill();
+
+  // ── Coordinates label ──
   ctx.font = '9px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(0, 229, 255, 0.6)';
   ctx.fillText(
     `(${userPos.x.toFixed(3)}, ${userPos.y.toFixed(3)})`,
-    x,
-    y + scanRadius + 16
+    cx,
+    cy + 34
   );
 
   ctx.restore();

@@ -33,8 +33,8 @@ export const lerp = (a, b, t) => {
 };
 
 export const project6Dto2D = (vector6d) => {
-  const Px = [0.52, 0.38, -0.31, 0.44, -0.21, 0.30];
-  const Py = [0.29, -0.45, 0.51, -0.22, 0.40, -0.48];
+  const Px = [-0.758, 0.0, 0.633, 0.040, 0.758, -0.633];
+  const Py = [0.633, 0.0, -0.633, 0.867, 0.472, -0.472];
 
   let x = Px.reduce((sum, w, i) => sum + w * vector6d[i], 0);
   let y = Py.reduce((sum, w, i) => sum + w * vector6d[i], 0);

@@ -13,9 +13,18 @@ import { renderHeatmapLayer } from './layers/HeatmapLayer';
 import { renderClusterLayer } from './layers/ClusterLayer';
 import { renderVectorLayer } from './layers/VectorLayer';
 import { renderForceFieldLayer } from './layers/ForceFieldLayer';
+import { renderPhaseAxes } from './layers/PhaseAxesLayer';
 import { renderBubbleLayer } from './layers/BubbleLayer';
 import { renderTrajectoryLayer } from './layers/TrajectoryLayer';
 import { renderUserLayer } from './layers/UserLayer';
+import { renderStreamlines } from './layers/StreamlineLayer';
+import { renderDirectionField } from './layers/DirectionFieldLayer';
+
+// Phase 5 Enhanced Layers
+import { renderAttractorBasinLayer } from './layers/AttractorBasinLayer';
+import { renderGradientDescentLayer } from './layers/GradientDescentLayer';
+import { renderGhostUserLayer } from './layers/GhostUserLayer';
+import { renderPerturbationRingLayer } from './layers/PerturbationRingLayer';
 
 // Pre-compute content 2D positions once
 const contentWithPositions = ClusteringEngine.assignContentToClusters(contentItems, CLUSTERS);
@@ -24,6 +33,8 @@ const AlgorithmCanvas = () => {
   const canvasRef = useRef(null);
   const timeRef = useRef(0);
   const rafRef = useRef(null);
+  const maxMagnitudeRef = useRef(0.001);
+  const lastForceFieldRef = useRef(null);
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -43,6 +54,9 @@ const AlgorithmCanvas = () => {
     // Clear canvas (use full logical area; ctx is pre-scaled)
     ctx.clearRect(0, 0, width, height);
 
+    // Layer 0: Phase Plane Coordinate Grid (always rendered on bottom)
+    renderPhaseAxes(ctx, width, height);
+
     // Layer 1: Heatmap (bottom layer)
     if (vizState.showHeatmap) {
       renderHeatmapLayer(ctx, width, height, {
@@ -51,12 +65,25 @@ const AlgorithmCanvas = () => {
       });
     }
 
-    // Layer 2: Force Field
-    if (vizState.showForceField) {
+    // Layers 2–2.5: Mutually exclusive field visualisation modes
+    if (vizState.fieldMode === 'force') {
+      // Force Field — arrows scaled by magnitude
+      if (vizState.forceField && vizState.forceField !== lastForceFieldRef.current) {
+        lastForceFieldRef.current = vizState.forceField;
+        const allMagnitudes = vizState.forceField.flat().map(f => Math.sqrt(f.x * f.x + f.y * f.y));
+        maxMagnitudeRef.current = Math.max(...allMagnitudes, 0.001);
+      }
       renderForceFieldLayer(ctx, width, height, {
         forceField: vizState.forceField,
+        maxMagnitude: maxMagnitudeRef.current,
         time
       });
+    } else if (vizState.fieldMode === 'streamlines') {
+      // Streamlines — integral curves of the field
+      renderStreamlines(ctx, width, height, vizState.forceField);
+    } else if (vizState.fieldMode === 'direction') {
+      // Direction Field — classic ODE slope field (equal-length ticks)
+      renderDirectionField(ctx, width, height, vizState.forceField);
     }
 
     // Layer 3: Clusters
@@ -66,7 +93,14 @@ const AlgorithmCanvas = () => {
       time
     });
 
-    // Layer 4: Content vectors (dots)
+    // Layer 4: Attractor Basin (Phase 5)
+    renderAttractorBasinLayer(ctx, width, height, {
+      clusters: CLUSTERS,
+      filterBubble: vizState.filterBubble,
+      time
+    });
+
+    // Layer 5: Content vectors (dots)
     if (vizState.showVectors) {
       renderVectorLayer(ctx, width, height, {
         contentItems: contentWithPositions,
@@ -76,7 +110,7 @@ const AlgorithmCanvas = () => {
       });
     }
 
-    // Layer 5: Trajectory trail
+    // Layer 6: Trajectory trail
     if (vizState.showTrajectory) {
       renderTrajectoryLayer(ctx, width, height, {
         trajectory: vizState.trajectory,
@@ -84,7 +118,13 @@ const AlgorithmCanvas = () => {
       });
     }
 
-    // Layer 6: Filter bubble boundary
+    // Layer 7: Ghost User twin (Phase 5)
+    renderGhostUserLayer(ctx, width, height, {
+      ghostUser: vizState.ghostUser,
+      time
+    });
+
+    // Layer 8: Filter bubble boundary
     if (vizState.showBubble) {
       renderBubbleLayer(ctx, width, height, {
         filterBubble: vizState.filterBubble,
@@ -93,16 +133,31 @@ const AlgorithmCanvas = () => {
       });
     }
 
-    // Layer 7: User position (top layer)
+    // Layer 9: User position
     renderUserLayer(ctx, width, height, {
       userPos: vizState.userPos,
       userVelocity: vizState.userVelocity,
+      recommendationForce: vizState.recommendationForce,
+      noise: vizState.noise,
       time
+    });
+
+    // Layer 10: Gradient Descent Optimization Arrow (Phase 5)
+    renderGradientDescentLayer(ctx, width, height, {
+      userPos: vizState.userPos,
+      recommendationForce: vizState.recommendationForce,
+      time
+    });
+
+    // Layer 11: Perturbation Expanding Shockwave (Phase 5)
+    renderPerturbationRingLayer(ctx, width, height, {
+      perturbationRing: vizState.perturbationRing
     });
 
     timeRef.current += 0.016; // ~60fps time step
     rafRef.current = requestAnimationFrame(render);
   }, []);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;

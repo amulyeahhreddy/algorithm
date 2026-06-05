@@ -19,13 +19,13 @@ export function renderTrajectoryLayer(ctx, width, height, { trajectory, time }) 
     // Normalized progress 0..1 through the trail
     const progress = i / len;
 
-    // Opacity fades from dim (old) to bright (new)
-    const alpha = progress * 0.7 + 0.05;
+    // Opacity is kept higher so older segments do not fade to invisibility
+    const alpha = progress * 0.35 + 0.45;
 
-    // Color shifts from violet (start) to cyan (end)
-    const r = Math.floor(124 * (1 - progress));
-    const g = Math.floor(58 * (1 - progress) + 229 * progress);
-    const b = Math.floor(237 * (1 - progress) + 255 * progress);
+    // Darker color values: deep violet (start) to deep cyan (end)
+    const r = Math.floor(75 * (1 - progress));
+    const g = Math.floor(35 * (1 - progress) + 140 * progress);
+    const b = Math.floor(150 * (1 - progress) + 160 * progress);
 
     // Breathing pulse on recent portion
     const breathe = i > len * 0.7 ? 0.8 + 0.2 * Math.sin(time * 3 + i * 0.1) : 1;
@@ -35,7 +35,7 @@ export function renderTrajectoryLayer(ctx, width, height, { trajectory, time }) 
     ctx.lineTo(curr.x * width, curr.y * height);
 
     ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha * breathe})`;
-    ctx.lineWidth = 1 + progress * 2;
+    ctx.lineWidth = 1.2 + progress * 1.8;
     ctx.lineCap = 'round';
     ctx.stroke();
   }

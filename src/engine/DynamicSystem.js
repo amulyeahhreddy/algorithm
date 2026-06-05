@@ -11,6 +11,8 @@ export class DynamicSystem {
       explorationNoise: 0.008,
       simulationTime: 0,
       forceField: [],
+      recommendationForce: { x: 0, y: 0 },
+      noise: { x: 0, y: 0 },
       ...initialState
     };
   }
@@ -52,11 +54,13 @@ export class DynamicSystem {
   step(dt, contentItems, scores) {
     // Euler integration — call this every animation frame
     const force = this.computeRecommendationForce(this.state.userPos, contentItems, scores);
+    this.state.recommendationForce = force;
     
     const noise = {
       x: (Math.random() - 0.5) * this.state.explorationNoise,
       y: (Math.random() - 0.5) * this.state.explorationNoise
     };
+    this.state.noise = noise;
 
     // Update velocity with force + damping
     this.state.userVelocity.x = (this.state.userVelocity.x + force.x * dt) * 0.88;
@@ -73,7 +77,7 @@ export class DynamicSystem {
       t: this.state.simulationTime 
     });
 
-    if (this.state.trajectory.length > 300) {
+    if (this.state.trajectory.length > 50000) {
       this.state.trajectory.shift();
     }
 

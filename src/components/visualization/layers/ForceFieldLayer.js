@@ -1,10 +1,14 @@
-/**
- * ForceFieldLayer — renders 20×20 arrow grid showing recommendation force directions
- * Arrows point toward content the algorithm wants to pull the user towards.
- */
+const lerp = (a, b, t) => a + (b - a) * t;
 
-export function renderForceFieldLayer(ctx, width, height, { forceField, time }) {
+export function renderForceFieldLayer(ctx, width, height, { forceField, maxMagnitude }) {
   if (!forceField || forceField.length === 0) return;
+
+  // Fallback if maxMagnitude isn't passed
+  let maxMag = maxMagnitude;
+  if (maxMag === undefined) {
+    const allMagnitudes = forceField.flat().map(f => Math.sqrt(f.x * f.x + f.y * f.y));
+    maxMag = Math.max(...allMagnitudes, 0.001);
+  }
 
   ctx.save();
   ctx.globalAlpha = 0.4;
@@ -20,53 +24,54 @@ export function renderForceFieldLayer(ctx, width, height, { forceField, time }) 
       const cx = ((i + 0.5) / gridSize) * width;
       const cy = ((j + 0.5) / gridSize) * height;
 
-      const mag = Math.sqrt(force.x * force.x + force.y * force.y);
-      if (mag < 0.001) continue; // skip near-zero forces
+      const fx = force.x;
+      const fy = force.y;
+      const magnitude = Math.sqrt(fx * fx + fy * fy);
+      if (magnitude < 0.003) continue; // skip near-zero vectors — empty space is honest
 
-      // Arrow length proportional to magnitude, capped
-      const maxLen = Math.min(width, height) / gridSize * 0.7;
-      const len = Math.min(mag * maxLen * 20, maxLen);
+      // Find the maximum magnitude across entire grid (compute once per frame, store in ref)
+      // mapRange: maps [0, maxMag] → [4, 28] px
+      const arrowLen = 4 + (magnitude / maxMag) * 24; // length IS magnitude
 
-      // Direction angle
-      const angle = Math.atan2(force.y, force.x);
+      const nx = fx / magnitude; // normalized direction
+      const ny = fy / magnitude;
+      const ex = cx + nx * arrowLen;
+      const ey = cy + ny * arrowLen;
 
-      // Color intensity based on magnitude
-      const intensity = Math.min(1, mag * 30);
-      const pulse = 0.7 + 0.3 * Math.sin(time * 2 + i * 0.5 + j * 0.3);
+      // Color by magnitude: low = dim violet, high = bright cyan
+      const t = magnitude / maxMag; // 0 to 1
+      const r = Math.round(lerp(124, 0, t));    // 124→0
+      const g = Math.round(lerp(58, 229, t));   // 58→229
+      const b = Math.round(lerp(237, 255, t));  // 237→255
+      const alpha = 0.25 + t * 0.45;
 
-      // Arrow shaft
-      const endX = cx + Math.cos(angle) * len;
-      const endY = cy + Math.sin(angle) * len;
+      ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.lineWidth = 0.8 + t * 0.6;
 
+      // Shaft
       ctx.beginPath();
       ctx.moveTo(cx, cy);
-      ctx.lineTo(endX, endY);
-
-      // Gradient: cyan for weak → violet for strong
-      const r = Math.floor(124 * intensity);
-      const g = Math.floor(58 * intensity + 229 * (1 - intensity));
-      const b = Math.floor(237 * intensity + 255 * (1 - intensity));
-      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.3 + intensity * 0.5 * pulse})`;
-      ctx.lineWidth = 1 + intensity * 1.5;
+      ctx.lineTo(ex, ey);
       ctx.stroke();
 
-      // Arrowhead
-      const headLen = 4 + intensity * 4;
-      const headAngle = 0.4;
+      // Filled triangle arrowhead (NOT a line — a proper arrowhead)
+      const headLen = 4 + t * 3;
+      const headAngle = 0.38; // radians (~22°)
+      const angle = Math.atan2(ny, nx);
+
       ctx.beginPath();
-      ctx.moveTo(endX, endY);
+      ctx.moveTo(ex, ey); // tip
       ctx.lineTo(
-        endX - Math.cos(angle - headAngle) * headLen,
-        endY - Math.sin(angle - headAngle) * headLen
+        ex - headLen * Math.cos(angle - headAngle),
+        ey - headLen * Math.sin(angle - headAngle)
       );
-      ctx.moveTo(endX, endY);
       ctx.lineTo(
-        endX - Math.cos(angle + headAngle) * headLen,
-        endY - Math.sin(angle + headAngle) * headLen
+        ex - headLen * Math.cos(angle + headAngle),
+        ey - headLen * Math.sin(angle + headAngle)
       );
-      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${0.5 + intensity * 0.4})`;
-      ctx.lineWidth = 1 + intensity;
-      ctx.stroke();
+      ctx.closePath();
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha + 0.1})`;
+      ctx.fill();
     }
   }
 

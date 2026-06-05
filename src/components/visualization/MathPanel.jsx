@@ -17,10 +17,16 @@ const MathPanel = () => {
   const filterBubble = useVisualizationStore((s) => s.filterBubble);
   const trajectory = useVisualizationStore((s) => s.trajectory);
   const userVector = useRecommendationStore((s) => s.userVector);
+  const recommendationForce = useVisualizationStore((s) => s.recommendationForce || { x: 0, y: 0 });
 
   const vMag = Math.sqrt(
     (userVelocity?.x || 0) ** 2 + (userVelocity?.y || 0) ** 2
   ).toFixed(5);
+
+  const dxdt = userVelocity?.x || 0;
+  const dydt = userVelocity?.y || 0;
+  const fMag = Math.sqrt(recommendationForce.x ** 2 + recommendationForce.y ** 2);
+  const epsilon = explorationNoise;
 
   return (
     <div className="math-panel">
@@ -111,8 +117,42 @@ const MathPanel = () => {
           </div>
         )}
       </div>
+
+      <div className="math-panel__divider" />
+
+      {/* ODE Dynamics */}
+      <div className="math-panel__section">
+        <div className="math-panel__label">ODE Differential Rates</div>
+        <div className="math-panel__ode-grid">
+          <div className="math-panel__ode-item">
+            <span className="math-panel__ode-label">dx/dt</span>
+            <span className={`math-panel__ode-val ${dxdt > 0.0001 ? 'pos' : dxdt < -0.0001 ? 'neg' : ''}`}>
+              {dxdt >= 0.0001 ? '+' : ''}{dxdt.toFixed(4)}
+            </span>
+          </div>
+          <div className="math-panel__ode-item">
+            <span className="math-panel__ode-label">dy/dt</span>
+            <span className={`math-panel__ode-val ${dydt > 0.0001 ? 'pos' : dydt < -0.0001 ? 'neg' : ''}`}>
+              {dydt >= 0.0001 ? '+' : ''}{dydt.toFixed(4)}
+            </span>
+          </div>
+          <div className="math-panel__ode-item">
+            <span className="math-panel__ode-label">|F_rec|</span>
+            <span className="math-panel__ode-val val-force">
+              {fMag.toFixed(4)}
+            </span>
+          </div>
+          <div className="math-panel__ode-item">
+            <span className="math-panel__ode-label">ε (noise)</span>
+            <span className="math-panel__ode-val val-noise">
+              {epsilon.toFixed(4)}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
 export default MathPanel;
+

@@ -9,6 +9,20 @@ import { useRecommendationStore } from '../../store/useRecommendationStore';
 
 const INSIGHTS = [
   {
+    id: 'perturbation',
+    condition: (viz) => viz.perturbationActive === true,
+    icon: '⚡',
+    title: 'SYSTEM PERTURBATION TRIGGERED',
+    message: 'A noise injection spike has perturbed the ODE solver. The recommendation force is temporarily overcome by random exploration.',
+  },
+  {
+    id: 'divergence',
+    condition: (viz) => viz.ghostUser !== null,
+    icon: '👥',
+    title: 'ALGORITHMIC DIVERGENCE ACTIVE',
+    message: 'Spawning a preference-inverted twin displays how identical systems diverge when fed slightly different starting conditions.',
+  },
+  {
     id: 'drift',
     condition: (viz) => {
       const len = viz.trajectory?.length || 0;
@@ -24,6 +38,7 @@ const INSIGHTS = [
     title: 'PREFERENCE DRIFT DETECTED',
     message: 'Your position vector has drifted from center. The recommendation force is pulling you toward a content cluster.',
   },
+
   {
     id: 'bubble_warning',
     condition: (viz) => viz.filterBubble?.active === true,
